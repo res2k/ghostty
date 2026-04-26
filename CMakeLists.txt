@@ -76,14 +76,7 @@ set(GHOSTTY_ZIG_BUILD_FLAGS "" CACHE STRING "Additional flags to pass to zig bui
 # Map CMake build types to Zig optimization levels. The result is stored in
 # _GHOSTTY_ZIG_OPT_FLAG so both the native build and ghostty_vt_add_target()
 # can reuse it without duplicating the mapping logic.
-set(_GHOSTTY_ZIG_OPT_FLAG "")
-if(CMAKE_BUILD_TYPE)
-    string(TOUPPER "${CMAKE_BUILD_TYPE}" _bt)
-    if(_bt STREQUAL "RELEASE" OR _bt STREQUAL "MINSIZEREL" OR _bt STREQUAL "RELWITHDEBINFO")
-        set(_GHOSTTY_ZIG_OPT_FLAG "-Doptimize=ReleaseFast")
-    endif()
-    unset(_bt)
-endif()
+set(_GHOSTTY_ZIG_OPT_FLAG "$<$<NOT:$<CONFIG:Debug>>:-Doptimize=ReleaseFast>")
 
 if(_GHOSTTY_ZIG_OPT_FLAG)
     list(APPEND GHOSTTY_ZIG_BUILD_FLAGS "${_GHOSTTY_ZIG_OPT_FLAG}")
@@ -96,8 +89,8 @@ message(STATUS "Found zig: ${ZIG_EXECUTABLE}")
 
 # --- Build via zig build -----------------------------------------------------
 
-# The zig build installs into zig-out/ relative to the source tree.
-set(ZIG_OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/zig-out")
+# Where we ask zig build to install to.
+set(ZIG_OUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/zig-out/$<CONFIG>")
 
 # Shared library names (zig build produces both shared and static).
 if(APPLE)
@@ -132,12 +125,15 @@ set(GHOSTTY_VT_STATIC_LIBRARY "${ZIG_OUT_DIR}/lib/${GHOSTTY_VT_STATIC_REALNAME}"
 
 # Ensure the output directories exist so CMake doesn't reject the
 # INTERFACE_INCLUDE_DIRECTORIES before the zig build has run.
-file(MAKE_DIRECTORY "${ZIG_OUT_DIR}/include")
+foreach(bt ${CMAKE_BUILD_TYPE} ${CMAKE_CONFIGURATION_TYPES})
+    string(REPLACE "$<CONFIG>" "${bt}" zig_out_for_config "${ZIG_OUT_DIR}")
+    file(MAKE_DIRECTORY "${zig_out_for_config}/include")
+endforeach()
 
 # Custom command: run zig build -Demit-lib-vt (produces both shared and static)
 add_custom_command(
     OUTPUT "${GHOSTTY_VT_SHARED_LIBRARY}" "${GHOSTTY_VT_STATIC_LIBRARY}" "${ZIG_OUT_DIR}/lib/${GHOSTTY_VT_IMPLIB}"
-    COMMAND "${ZIG_EXECUTABLE}" build -Demit-lib-vt ${GHOSTTY_ZIG_BUILD_FLAGS}
+    COMMAND "${ZIG_EXECUTABLE}" build -Demit-lib-vt ${GHOSTTY_ZIG_BUILD_FLAGS} -p "${ZIG_OUT_DIR}"
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Building libghostty-vt via zig build..."
     USES_TERMINAL
@@ -153,6 +149,21 @@ set_property(DIRECTORY APPEND PROPERTY
 )
 
 # --- IMPORTED library targets ------------------------------------------------
+
+# Helper to set IMPORTED_LOCATION_<CONFIG> values on a target.
+# The imported locations are derived from ZIG_OUT_DIR, which contains a generator
+# expression. Unfortunately, those are not support in the IMPORTED_LOCATION
+# property. Fortunately, the config-specific IMPORTED_LOCATION_<CONFIG> are
+# available; fill that for each configuration by manually replacing the $<CONFIG>
+# generator expression in the imported location.
+function(set_imported_location_property TARGET LOCATION)
+    foreach(bt ${CMAKE_BUILD_TYPE} ${CMAKE_CONFIGURATION_TYPES})
+        string(TOUPPER "${bt}" bt_UPPER)
+        string(REPLACE "$<CONFIG>" "${bt}" real_location "${LOCATION}")
+        set_target_properties(${TARGET} PROPERTIES IMPORTED_LOCATION_${bt_UPPER} ${real_location})
+    endforeach()
+endfunction()
+
 
 # Shared
 add_library(ghostty-vt SHARED IMPORTED GLOBAL)
@@ -187,10 +198,10 @@ add_dependencies(ghostty-vt zig_build_lib_vt)
 # Building with -Dsimd=false removes all runtime dependencies.
 add_library(ghostty-vt-static STATIC IMPORTED GLOBAL)
 set_target_properties(ghostty-vt-static PROPERTIES
-    IMPORTED_LOCATION "${GHOSTTY_VT_STATIC_LIBRARY}"
     INTERFACE_INCLUDE_DIRECTORIES "${ZIG_OUT_DIR}/include"
     INTERFACE_COMPILE_DEFINITIONS "GHOSTTY_STATIC"
 )
+set_imported_location_property(ghostty-vt-static "${GHOSTTY_VT_STATIC_LIBRARY}")
 if(WIN32)
     # On Windows, the Zig standard library uses NT API functions
     # (NtClose, NtCreateSection, etc.) and kernel32 functions that
@@ -342,10 +353,10 @@ function(ghostty_vt_add_target)
     set(_static_target "ghostty-vt-static-${_GVT_NAME}")
     add_library(${_static_target} STATIC IMPORTED GLOBAL)
     set_target_properties(${_static_target} PROPERTIES
-        IMPORTED_LOCATION "${_static_lib}"
         INTERFACE_INCLUDE_DIRECTORIES "${_include_dir}"
         INTERFACE_COMPILE_DEFINITIONS "GHOSTTY_STATIC"
     )
+    set_imported_location_property(${_static_target} ${_static_lib})
     if(_GVT_ZIG_TARGET MATCHES "windows")
         set_target_properties(${_static_target} PROPERTIES
             INTERFACE_LINK_LIBRARIES "ntdll;kernel32"
@@ -357,9 +368,9 @@ function(ghostty_vt_add_target)
     set(_shared_target "ghostty-vt-${_GVT_NAME}")
     add_library(${_shared_target} SHARED IMPORTED GLOBAL)
     set_target_properties(${_shared_target} PROPERTIES
-        IMPORTED_LOCATION "${_shared_lib}"
         INTERFACE_INCLUDE_DIRECTORIES "${_include_dir}"
     )
+    set_imported_location_property(${_shared_target} ${_shared_lib})
     if(_GVT_ZIG_TARGET MATCHES "windows")
         set_target_properties(${_shared_target} PROPERTIES
             IMPORTED_IMPLIB "${_implib}"
