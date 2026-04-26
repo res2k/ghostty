@@ -216,8 +216,15 @@ typedef struct {
  * opts.trim = true;
  * @endcode
  */
+#if defined(__cplusplus) && defined(__cpp_designated_initializers)
+/* Not all C++ compilers like the C cast syntax for struct initialization, so use proper C++
+ * designated initialization, if available */
+#define GHOSTTY_INIT_SIZED(type) \
+  type{ .size = sizeof(type) }
+#else
 #define GHOSTTY_INIT_SIZED(type) \
   ((type){ .size = sizeof(type) })
+#endif
 
 /**
  * Return a pointer to a null-terminated JSON string describing the
