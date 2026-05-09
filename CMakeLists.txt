@@ -71,6 +71,11 @@ project(ghostty-vt VERSION 0.1.0 LANGUAGES C)
 
 # --- Options ----------------------------------------------------------------
 
+option(GHOSTTY_INSTALL "Whether to install GhosTTY files" ON)
+option(GHOSTTY_INSTALL_SHARED_LIB "Whether to install shared libs" ON)
+option(GHOSTTY_INSTALL_STATIC_LIB "Whether to install static libs" ON)
+option(GHOSTTY_INSTALL_HEADER "Whether to install headers" ON)
+option(GHOSTTY_INSTALL_CONFIG "Whether to install CMake config" ON)
 set(GHOSTTY_ZIG_BUILD_FLAGS "" CACHE STRING "Additional flags to pass to zig build")
 
 # Map CMake build types to Zig optimization levels. The result is stored in
@@ -217,28 +222,34 @@ add_dependencies(ghostty-vt-static zig_build_lib_vt)
 include(GNUInstallDirs)
 
 # Install shared library
-if(WIN32)
-    # On Windows, install the DLL and PDB to bin/ and the import library to lib/
-    install(FILES "${GHOSTTY_VT_SHARED_LIBRARY}" "${ZIG_OUT_DIR}/bin/ghostty-vt.pdb" TYPE BIN)
-    install(FILES "${ZIG_OUT_DIR}/lib/${GHOSTTY_VT_IMPLIB}" TYPE LIB)
-else()
-    install(FILES "${GHOSTTY_VT_SHARED_LIBRARY}" TYPE LIB)
-    # Install symlinks
-    install(CODE "
-        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
-            \"${GHOSTTY_VT_REALNAME}\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${GHOSTTY_VT_SONAME}\")
-        execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
-            \"${GHOSTTY_VT_SONAME}\"
-            \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${GHOSTTY_VT_LIBNAME}\")
-    ")
+if(GHOSTTY_INSTALL AND GHOSTTY_INSTALL_SHARED_LIB)
+    if(WIN32)
+        # On Windows, install the DLL and PDB to bin/ and the import library to lib/
+        install(FILES "${GHOSTTY_VT_SHARED_LIBRARY}" "${ZIG_OUT_DIR}/bin/ghostty-vt.pdb" TYPE BIN)
+        install(FILES "${ZIG_OUT_DIR}/lib/${GHOSTTY_VT_IMPLIB}" TYPE LIB)
+    else()
+        install(FILES "${GHOSTTY_VT_SHARED_LIBRARY}" TYPE LIB)
+        # Install symlinks
+        install(CODE "
+            execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+                \"${GHOSTTY_VT_REALNAME}\"
+                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${GHOSTTY_VT_SONAME}\")
+            execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+                \"${GHOSTTY_VT_SONAME}\"
+                \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${GHOSTTY_VT_LIBNAME}\")
+        ")
+    endif()
 endif()
 
-# Install static library
-install(FILES "${GHOSTTY_VT_STATIC_LIBRARY}" TYPE LIB)
+if(GHOSTTY_INSTALL AND GHOSTTY_INSTALL_STATIC_LIB)
+    # Install static library
+    install(FILES "${GHOSTTY_VT_STATIC_LIBRARY}" TYPE LIB)
+endif()
 
-# Install headers
-install(DIRECTORY "${ZIG_OUT_DIR}/include/ghostty" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+if(GHOSTTY_INSTALL AND GHOSTTY_INSTALL_HEADERS)
+    # Install headers
+    install(DIRECTORY "${ZIG_OUT_DIR}/include/ghostty" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
+endif()
 
 # --- CMake package config for find_package() ----------------------------------
 
@@ -258,13 +269,15 @@ write_basic_package_version_file(
     COMPATIBILITY SameMajorVersion
 )
 
-# Install the config files
-install(
-    FILES
-        "${CMAKE_CURRENT_BINARY_DIR}/ghostty-vt-config.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/ghostty-vt-config-version.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ghostty-vt"
-)
+if(GHOSTTY_INSTALL AND GHOSTTY_INSTALL_CONFIG)
+    # Install the config files
+    install(
+        FILES
+            "${CMAKE_CURRENT_BINARY_DIR}/ghostty-vt-config.cmake"
+            "${CMAKE_CURRENT_BINARY_DIR}/ghostty-vt-config-version.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/ghostty-vt"
+    )
+endif()
 
 # --- Cross-compilation helper ------------------------------------------------
 #
