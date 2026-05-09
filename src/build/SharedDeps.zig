@@ -854,6 +854,16 @@ pub fn addSimd(
             "-fno-sanitize-trap=undefined",
         });
 
+        // const runtime_type = "dll"; // or static
+        // const runtime_opt = if (optimize == .Debug) "_dbg" else "";
+        // try flags.append(
+        //     b.allocator,
+        //     b.fmt("-fms-runtime-lib={s}{s}", .{ runtime_type, runtime_opt }),
+        // );
+
+        try flags.append(b.allocator, "-D_ALLOW_RUNTIME_LIBRARY_MISMATCH");
+        try flags.append(b.allocator, "-D_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH");
+
         m.addCSourceFiles(.{
             .files = &.{
                 "src/simd/base64.cpp",

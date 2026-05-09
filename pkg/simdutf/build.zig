@@ -60,6 +60,8 @@ pub fn build(b: *std.Build) !void {
             try flags.append(b.allocator, "-fno-exceptions");
             try flags.append(b.allocator, "-fno-rtti");
         }
+        try flags.append(b.allocator, "-D_ALLOW_RUNTIME_LIBRARY_MISMATCH");
+        try flags.append(b.allocator, "-D_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH");
 
         lib.root_module.addCMacro("SIMDUTF_NO_LIBCXX", "1");
     }
