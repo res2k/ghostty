@@ -14,6 +14,10 @@
 #include <ghostty/vt/terminal.h>
 #include <ghostty/vt/key/event.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Opaque handle to a key encoder instance.
  *
@@ -251,5 +255,9 @@ GHOSTTY_API void ghostty_key_encoder_setopt_from_terminal(GhosttyKeyEncoder enco
  * @ingroup key
  */
 GHOSTTY_API GhosttyResult ghostty_key_encoder_encode(GhosttyKeyEncoder encoder, GhosttyKeyEvent event, char *out_buf, size_t out_buf_size, size_t *out_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* GHOSTTY_VT_KEY_ENCODER_H */

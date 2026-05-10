@@ -15,6 +15,10 @@
 #include <ghostty/vt/terminal.h>
 #include <ghostty/vt/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Opaque handle to a mouse encoder instance.
  *
@@ -210,5 +214,9 @@ GHOSTTY_API GhosttyResult ghostty_mouse_encoder_encode(GhosttyMouseEncoder encod
                                            char *out_buf,
                                            size_t out_buf_size,
                                            size_t *out_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* GHOSTTY_VT_MOUSE_ENCODER_H */

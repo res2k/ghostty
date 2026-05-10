@@ -13,6 +13,10 @@
 #include <ghostty/vt/types.h>
 #include <ghostty/vt/allocator.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Opaque handle to a key event.
  * 
@@ -478,5 +482,9 @@ GHOSTTY_API void ghostty_key_event_set_unshifted_codepoint(GhosttyKeyEvent event
  * @ingroup key
  */
 GHOSTTY_API uint32_t ghostty_key_event_get_unshifted_codepoint(GhosttyKeyEvent event);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* GHOSTTY_VT_KEY_EVENT_H */

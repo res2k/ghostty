@@ -13,6 +13,10 @@
 #include <ghostty/vt/types.h>
 #include <ghostty/vt/allocator.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** @defgroup osc OSC Parser
  *
  * OSC (Operating System Command) sequence parser and command handling.
@@ -211,5 +215,9 @@ GHOSTTY_API GhosttyOscCommandType ghostty_osc_command_type(GhosttyOscCommand com
 GHOSTTY_API bool ghostty_osc_command_data(GhosttyOscCommand command, GhosttyOscCommandData data, void *out);
 
 /** @} */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* GHOSTTY_VT_OSC_H */
