@@ -167,6 +167,10 @@ function(set_imported_location_property TARGET LOCATION)
         string(REPLACE "$<CONFIG>" "${bt}" real_location "${LOCATION}")
         set_target_properties(${TARGET} PROPERTIES IMPORTED_LOCATION_${bt_UPPER} ${real_location})
     endforeach()
+    if(NOT CMAKE_BUILD_TYPE)
+        string(REPLACE "$<CONFIG>" "" real_location "${LOCATION}")
+        set_target_properties(${TARGET} PROPERTIES IMPORTED_LOCATION ${real_location})
+    endif()
 endfunction()
 
 
